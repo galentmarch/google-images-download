@@ -1,7 +1,10 @@
 Google Images Download
 ######################
 
-Python Script for 'searching' and 'downloading' hundreds of Google images to the local hard disk!
+This is a forked version of google-images-download, a Python Script for 'searching' and 'downloading' hundreds of
+Google images to the local hard disk!  The only change I've made to the source code is the addition of a
+--keyword-and-names-from-file argument, which allows the user to input a file of paired search keywords and image names.
+Each image name will be assigned to all pictures downloaded under its corresponding search keyword.
 
 Documentation
 =============
