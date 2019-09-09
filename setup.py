@@ -18,12 +18,12 @@ install_requires = [x.strip() for x in all_reqs if 'git+' not in x]
 dependency_links = [x.strip().replace('git+', '') for x in all_reqs if x.startswith('git+')]
 
 setup(
-    name='google_images_download',
+    name='google_images_download_worldwide',
     version=__version__,
     description="Python Script to download hundreds of images from 'Google Images'. It is a ready-to-run code! ",
     long_description=long_description,
-    url='https://github.com/hardikvasa/google-images-download',
-    download_url='https://github.com/hardikvasa/google-images-download/tarball/' + __version__,
+    url='https://github.com/galentmarch/google-images-download',
+    download_url='https://github.com/galentmarch/google-images-download/tarball/' + __version__,
     license='MIT',
     classifiers=[
         'Development Status :: 4 - Beta',

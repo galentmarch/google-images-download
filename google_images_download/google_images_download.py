@@ -39,7 +39,7 @@ args_list = ["keywords", "keywords_from_file", "prefix_keywords", "suffix_keywor
              "exact_size", "aspect_ratio", "type", "time", "time_range", "delay", "url", "single_image",
              "output_directory", "image_directory", "no_directory", "proxy", "similar_images", "specific_site",
              "print_urls", "print_size", "print_paths", "metadata", "extract_metadata", "socket_timeout",
-             "thumbnail", "thumbnail_only", "language", "prefix", "names_from_file", "chromedriver", "related_images", "safe_search", "no_numbering",
+             "thumbnail", "thumbnail_only", "language", "prefix", "keywords_and_names_from_file", "chromedriver", "related_images", "safe_search", "no_numbering",
              "offset", "no_download","save_source","silent_mode","ignore_urls"]
 
 
@@ -105,7 +105,7 @@ def user_input():
         parser.add_argument('-la', '--language', default=False, help="Defines the language filter. The search results are authomatically returned in that language", type=str, required=False,
                             choices=['Arabic','Chinese (Simplified)','Chinese (Traditional)','Czech','Danish','Dutch','English','Estonian','Finnish','French','German','Greek','Hebrew','Hungarian','Icelandic','Italian','Japanese','Korean','Latvian','Lithuanian','Norwegian','Portuguese','Polish','Romanian','Russian','Spanish','Swedish','Turkish'])
         parser.add_argument('-pr', '--prefix', default=False, help="A word that you would want to prefix in front of each image name", type=str, required=False)
-        parser.add_argument('-nff', '--names_from_file', default=False, type=str, help="you know", required=False)
+        parser.add_argument('-knf', '--keywords_and_names_from_file', default=False, type=str, help="Enter a file name of image search entries paired with the name you'd like to give to the downloaded image. File should be in csv format and each line should be structured as <search keyword>,<image name>", required=False)
         parser.add_argument('-px', '--proxy', help='specify a proxy address and port', type=str, required=False)
         parser.add_argument('-cd', '--chromedriver', help='specify the path to chromedriver executable in your local machine', type=str, required=False)
         parser.add_argument('-ri', '--related_images', default=False, help="Downloads images that are similar to the keyword provided", action="store_true")
@@ -476,6 +476,37 @@ class googleimagesdownload:
                 sys.exit()
         return search_keyword
 
+    #keywords and names from file
+    def keywords_and_names_from_file(self,file_name):
+        keywords_and_names = []
+        search_keyword = []
+        name_list = []
+        with codecs.open(file_name, 'r', encoding='utf-8-sig') as f:
+            if '.csv' in file_name:
+                for line in f:
+                    if line in ['\n', '\r\n']:
+                        pass
+                    else:
+                        line_items = line.split(',')
+                        search_keyword.append(line_items[0].replace('\n', '').replace('\r', ''))
+                        name_list.append(line_items[1].replace('\n', '').replace('\r', ''))
+            elif '.txt' in file_name:
+                for line in f:
+                    if line in ['\n', '\r\n']:
+                        pass
+                    else:
+                        line_items = line.split(',')
+                        search_keyword.append(line_items[0].replace('\n', '').replace('\r', ''))
+                        name_list.append(line_items[1].replace('\n', '').replace('\r', ''))
+            else:
+                print("Invalid file type: Valid file types are either .txt or .csv \n"
+                         "exiting...")
+                sys.exit()
+        keywords_and_names.append(search_keyword)
+        keywords_and_names.append(name_list)
+        return keywords_and_names
+
+
     # make directories
     def create_directories(self,main_directory, dir_name,thumbnail,thumbnail_only):
         dir_name_thumbnail = dir_name + " - thumbnail"
@@ -576,7 +607,7 @@ class googleimagesdownload:
 
 
     # Download Images
-    def download_image(self,image_url,image_format,main_directory,dir_name,count,print_urls,socket_timeout,prefix,print_size,no_numbering,no_download,save_source,img_src,silent_mode,thumbnail_only,format,ignore_urls):
+    def download_image(self,image_url,image_format,main_directory,dir_name,count,print_urls,socket_timeout,prefix,print_size,no_numbering,no_download,save_source,img_src,silent_mode,thumbnail_only,format,ignore_urls,name):
         if not silent_mode:
             if print_urls or no_download:
                 print("Image URL: " + image_url)
@@ -603,7 +634,11 @@ class googleimagesdownload:
 
                 extensions = [".jpg", ".jpeg", ".gif", ".png", ".bmp", ".svg", ".webp", ".ico"]
                 # keep everything after the last '/'
-                image_name = str(image_url[(image_url.rfind('/')) + 1:])
+                if not name:
+                    image_name = str(image_url[(image_url.rfind('/')) + 1:])
+                else:
+                    image_name = name
+
                 if format:
                     if not image_format or image_format != format:
                         download_status = 'fail'
@@ -741,7 +776,7 @@ class googleimagesdownload:
 
 
     # Getting all links with the help of '_images_get_next_image'
-    def _get_all_items(self,page,main_directory,dir_name,limit,arguments):
+    def _get_all_items(self,page,main_directory,dir_name,limit,arguments,name):
         items = []
         abs_path = []
         errorCount = 0
@@ -764,7 +799,7 @@ class googleimagesdownload:
                         print("\nImage Metadata: " + str(object))
 
                 #download the images
-                download_status,download_message,return_image_name,absolute_path = self.download_image(object['image_link'],object['image_format'],main_directory,dir_name,count,arguments['print_urls'],arguments['socket_timeout'],arguments['prefix'],arguments['print_size'],arguments['no_numbering'],arguments['no_download'],arguments['save_source'],object['image_source'],arguments["silent_mode"],arguments["thumbnail_only"],arguments['format'],arguments['ignore_urls'])
+                download_status,download_message,return_image_name,absolute_path = self.download_image(object['image_link'],object['image_format'],main_directory,dir_name,count,arguments['print_urls'],arguments['socket_timeout'],arguments['prefix'],arguments['print_size'],arguments['no_numbering'],arguments['no_download'],arguments['save_source'],object['image_source'],arguments["silent_mode"],arguments["thumbnail_only"],arguments['format'],arguments['ignore_urls'],name)
                 if not arguments["silent_mode"]:
                     print(download_message)
                 if download_status == "success":
@@ -853,6 +888,13 @@ class googleimagesdownload:
         if arguments['keywords_from_file']:
             search_keyword = self.keywords_from_file(arguments['keywords_from_file'])
 
+        if arguments['keywords_and_names_from_file']:
+            keys_n_names = self.keywords_and_names_from_file(arguments['keywords_and_names_from_file'])
+            search_keyword = keys_n_names[0]
+            names_list = keys_n_names[1]
+        else:
+            names_list = []
+
         # both time and time range should not be allowed in the same query
         if arguments['time'] and arguments['time_range']:
             raise ValueError('Either time or time range should be used in a query. Both cannot be used at the same time.')
@@ -893,7 +935,8 @@ class googleimagesdownload:
 
         # If single_image or url argument not present then keywords is mandatory argument
         if arguments['single_image'] is None and arguments['url'] is None and arguments['similar_images'] is None and \
-                        arguments['keywords'] is None and arguments['keywords_from_file'] is None:
+                        arguments['keywords'] is None and arguments['keywords_from_file'] is None and \
+                        arguments['keywords_and_names_from_file'] is None:
             print('-------------------------------\n'
                   'Uh oh! Keywords is a required argument \n\n'
                   'Please refer to the documentation on guide to writing queries \n'
@@ -950,7 +993,12 @@ class googleimagesdownload:
                             print("Getting URLs without downloading images...")
                         else:
                             print("Starting Download...")
-                    items,errorCount,abs_path = self._get_all_items(raw_html,main_directory,dir_name,limit,arguments)    #get all image items and download images
+
+                    input_name = False
+                    if names_list:
+                        input_name = names_list[i]
+
+                    items,errorCount,abs_path = self._get_all_items(raw_html,main_directory,dir_name,limit,arguments,input_name)    #get all image items and download images
                     paths[pky + search_keyword[i] + sky] = abs_path
 
                     #dumps into a json file
@@ -976,7 +1024,7 @@ class googleimagesdownload:
                             else:
                                 new_raw_html = self.download_extended_page(value,arguments['chromedriver'])
                             self.create_directories(main_directory, final_search_term,arguments['thumbnail'],arguments['thumbnail_only'])
-                            self._get_all_items(new_raw_html, main_directory, search_term + " - " + key, limit,arguments)
+                            self._get_all_items(new_raw_html, main_directory, search_term + " - " + key, limit,arguments,input_name)
 
                     i += 1
                     total_errors = total_errors + errorCount
